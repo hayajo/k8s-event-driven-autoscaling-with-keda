@@ -1,0 +1,16 @@
+{{- if .Values.scaledObject.create -}}
+apiVersion: keda.sh/v1alpha1
+kind: TriggerAuthentication
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: myapp
+spec:
+  podIdentity:
+    # see. https://keda.sh/docs/2.14/authentication-providers/aws/
+    provider: aws
+    {{- if .Values.scaledObject.triggerAuthentication.roleArn }}
+    roleArn: {{ .Values.scaledObject.triggerAuthentication.roleArn }}
+    {{- else }}
+    identityOwner: {{ .Values.scaledObject.triggerAuthentication.identityOwner }}
+    {{- end }}
+{{- end }}

@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: myapp
+  name: myapp
+spec:
+  selector:
+    matchLabels:
+      app: myapp
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: myapp
+    spec:
+      serviceAccountName: myapp
+      containers:
+        - name: myapp
+          image: amazon/aws-cli
+          env:
+            - name: AWS_REGION
+              value: {{ .Values.awsRegion }}
+            - name: QUEUE_URL
+              value: {{ .Values.queueURL }}
+          command:
+            - /bin/sh
+            - -c
+            - |
+              continue=true
+              # Graceful shutdown
+              trap 'echo "Interrupted. Shutdown gracefully."; continue=false' TERM
+              # Loop to receive messages from SQS
+              while $continue; do
+                # Receive message from SQS
+                RECEIVE_OUTPUT=$(aws sqs receive-message --queue-url="$QUEUE_URL" --wait-time-seconds=20 --query="[Messages[0].ReceiptHandle, Messages[0].Body]" --output=text)
+                RECEIPT_HANDLE=$(echo "$RECEIVE_OUTPUT" | cut -f1)
+                if [ "$RECEIPT_HANDLE" = "None" ]; then
+                  echo "No message received"
+                  continue
+                fi
+                echo "Message received: $RECEIPT_HANDLE"
+                if ! $continue ; then
+                  echo "Skip processing"
+                  break
+                fi
+                # Process message
+                BODY=$(echo "$RECEIVE_OUTPUT" | cut -f2-)
+                echo "Start processing message: $BODY"
+                sleep 20
+                echo "Finish processing message"
+                # Delete message from SQS
+                aws sqs delete-message --queue-url="$QUEUE_URL" --receipt-handle="$RECEIPT_HANDLE" \
+                  && echo "Message deleted: $RECEIPT_HANDLE"
+              done
+          resources:
+            limits:
+              cpu: "0.25"
+              memory: 256Mi
+            requests:
+              cpu: "0.25"
+              memory: 256Mi

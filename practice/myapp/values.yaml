@@ -1,0 +1,15 @@
+queueURL: ""
+awsRegion: "ap-northeast-1"
+serviceAccount:
+  annotations:
+    eks.amazonaws.com/role-arn: ""
+scaledObject:
+  create: true
+  minReplicaCount: 0
+  maxReplicaCount: 3
+  # queueLength ごとに Pod をスケールアウトする
+  queueLength: 3
+  triggerAuthentication:
+    roleArn: ""
+    # "keda" or "workload"
+    identityOwner: "keda"

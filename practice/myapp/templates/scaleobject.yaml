@@ -1,0 +1,22 @@
+{{- if .Values.scaledObject.create -}}
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: myapp
+spec:
+  scaleTargetRef:
+    name: myapp
+  minReplicaCount: {{ .Values.scaledObject.minReplicaCount }}
+  maxReplicaCount: {{ .Values.scaledObject.maxReplicaCount }}
+  # pollingInterval: 30 # デフォルト: 30 秒
+  # cooldownPeriod: 60 # スケールダウンの猶予時間. デフォルト: 300 秒
+  triggers:
+    - type: aws-sqs-queue
+      authenticationRef:
+        name: myapp
+      metadata:
+        awsRegion: {{ .Values.awsRegion }}
+        queueURL: {{ .Values.queueURL }}
+        queueLength: "{{ .Values.scaledObject.queueLength }}" # queueLength ごとにスケールアウトする
+{{- end }}
